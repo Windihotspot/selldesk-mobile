@@ -10,6 +10,7 @@ import vuetify from './plugins/vuetify'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import './assets/fonts.css'
+import ApiService from "@/services/ApiService";
 
 import '@ionic/vue/css/core.css'
 import '@ionic/vue/css/normalize.css'
@@ -31,5 +32,6 @@ app.use(IonicVue, { mode: 'ios', animated: true, rippleEffect: false })
 app.use(router)
 app.use(vuetify)   
 app.use(ElementPlus)  
+ApiService.init(app);
 
 router.isReady().then(() => app.mount('#app'))

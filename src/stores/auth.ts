@@ -1,239 +1,148 @@
-// src/stores/auth.ts
-import { ref, computed } from "vue";
+// src/stores/auth.ts (Ionic / Capacitor version)
+
+import { ref } from "vue";
 import { defineStore } from "pinia";
-import { jwtDecode } from "jwt-decode";
-import axios from "axios";
+import ApiService from "@/services/ApiService";
+import JwtService from "@/services/JwtService";
+import type { IAppUser } from "@/types/quidlyInterfaces";
 
-// ── INTERFACES (matching merchant-app) ───────────────────────────────────────
-export interface IAppUser {
-  accountid: string;
-  quidlyuserid: string;
-  fname: string;
-  lname: string;
+export interface LoginCredentials {
   email: string;
-  merchantids: string[];
-  bvn: string;
-  nin: string;
-  kyc_status: number;
-  verifyentrydt: string;
-  id_status: number;
-  proofofaddress_status: number;
-  isadmin: number;
+  password: string;
 }
 
-export interface IMerchantUser {
-  merchantid: string;
-  accountid: string;
-  quidlyuserid: string;
-}
+export const useAuthStore = defineStore("auth", () => {
+  console.log("Auth store loaded");
+  const errors = ref<Record<string, any>>({});
+  const user = ref<IAppUser>({} as IAppUser);
+  const isAuthenticated = ref(false);
+  // starts true so router guards / splash screen can wait on it
+  const isAuthenticating = ref(true);
 
-export interface IMerchant {
-  accountid: string;
-  merchantname: string;
-  companyregno: string;
-  companytypeid: string;
-  entrydt: string;
-  quidlyuserid: string;
-  status: number;
-  merchantid: string;
-}
+  // IMPORTANT: must be awaited once at app bootstrap (see main.ts),
+  // since Preferences is async and can't be read synchronously like
+  // localStorage was in the web version.
+  async function initFromStorage() {
+    isAuthenticating.value = true;
+    try {
+      const [token, storedUser] = await Promise.all([
+        JwtService.getToken(),
+        JwtService.doUser(null, "getItem"),
+      ]);
 
-// ── STORE ─────────────────────────────────────────────────────────────────────
-export const useAuth = defineStore(
-  "auth",
-  () => {
-    const user         = ref<IAppUser>({} as IAppUser);
-    const merchantUser = ref<IMerchantUser>({} as IMerchantUser);
-    const merchants    = ref<IMerchant[]>([]);
-    const isAuthenticating = ref(false);
-    const initialized  = ref(false);
+      if (token && storedUser) {
+        user.value = storedUser;
+        isAuthenticated.value = true;
+      } else {
+        isAuthenticated.value = false;
+      }
+    } finally {
+      isAuthenticating.value = false;
+    }
+  }
 
-    // ── COMPUTED ───────────────────────────────────────────────────────────────
-    const isLoggedIn = computed(() => !!user.value?.quidlyuserid);
+  async function setAuth(authUser: IAppUser) {
+    isAuthenticated.value = true;
+    user.value = authUser;
+    errors.value = {};
+    await JwtService.saveToken(authUser.quidlyuserid);
+    await JwtService.doUser(authUser, "setItem");
+  }
 
-    const email = computed(() => user.value?.email || "");
+  function setError(error: any) {
+    errors.value = { ...error };
+  }
 
-    const activeMerchant = computed<IMerchant | null>(
-      () =>
-        merchants.value.find(
-          (m) => m.merchantid === merchantUser.value.merchantid
-        ) || null
+  async function purgeAuth() {
+    isAuthenticated.value = false;
+    user.value = {} as IAppUser;
+    errors.value = {};
+    await JwtService.destroyToken();
+    await JwtService.doUser(null, "removeItem");
+  }
+
+async function login(credentials: LoginCredentials): Promise<boolean> {
+  try {
+    const payload = {
+      _email: credentials.email,
+      _encryptpwd: credentials.password,
+    };
+
+    console.log("========== LOGIN REQUEST ==========");
+    console.log("URL:", "/mdb/procedure/spEmailLogin");
+    console.log("Payload:", payload);
+
+    const { data } = await ApiService.post(
+      "/mdb/procedure/spEmailLogin",
+      payload
     );
 
-    const merchantId   = computed(() => merchantUser.value.merchantid || "");
-    const merchantName = computed(() => activeMerchant.value?.merchantname || "");
-    const accountId    = computed(() => user.value?.accountid || "");
-    const userId       = computed(() => user.value?.quidlyuserid || "");
+    // 👇 ADD THESE LOGS HERE
+    console.log("========== LOGIN RESPONSE ==========");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("jsresult:", data.jsresult);
+    console.log("Is Array?", Array.isArray(data.jsresult));
 
-    const hasMultipleMerchants = computed(() => merchants.value.length > 1);
+    if (!data.jsresult || data.jsresult.length === 0) {
+      setError({ error: "Invalid email or password" });
+      return false;
+    }
 
-    // ── ACTIONS ────────────────────────────────────────────────────────────────
+    console.log("Authenticated User:", data.jsresult[0]);
 
-    /**
-     * Mirrors merchant-app verifyAuth() pattern exactly.
-     * window.keycloak is set by keycloak-js init in src/auth/keycloak.ts.
-     *
-     * Flow:
-     *  1. Decode KC token → email
-     *  2. POST GetUserDetailsByEmailExtended → user + merchantids[]
-     *  3. POST get_MerchantDetails for each id → merchants[]
-     *  4. Auto-select first merchant (respects persisted choice on reload)
-     */
-    async function verifyAuth() {
-      console.log("selldesk: starting verifyAuth");
-      isAuthenticating.value = true;
+    await setAuth(data.jsresult[0]);
 
-      const kc = (window as any).keycloak;
-
-      if (!kc || !kc.authenticated) {
-        console.warn("selldesk: Keycloak not authenticated");
-        purgeAuth();
-        isAuthenticating.value = false;
-        return;
+    return true;
+  } catch (err: any) {
+    console.error(err);
+    return false;
+  }
+}
+async function emailLogin(credentials: LoginCredentials): Promise<boolean> {
+  try {
+      console.log("========== LOGIN email REQUEST ==========");
+    const { data } = await ApiService.post(
+      "/mdb/procedure/GetUserDetailsByEmailExtended",
+      {
+        p_email: credentials.email,
       }
+    );
+    console.log("========== EMAIL LOGIN RESPONSE ==========");
+console.log(JSON.stringify(data, null, 2));
+console.log("status:", data.status);
+console.log("jsresult:", data.jsresult);
+console.log("isArray:", Array.isArray(data.jsresult));
+console.log("length:", data.jsresult?.length);
 
-      try {
-        // Refresh token if close to expiry
-        try {
-          await kc.updateToken(30);
-        } catch {
-          console.warn("Token refresh failed — using existing token");
-        }
-
-        // ── Step 1: email from token ──────────────────────────────────────────
-        const decoded: any = jwtDecode(kc.token!);
-        const userEmail: string = decoded.email;
-
-        if (!userEmail) {
-          console.error("No email in Keycloak token");
-          purgeAuth();
-          return;
-        }
-
-        console.log("selldesk: email from token →", userEmail);
-
-        const base    = import.meta.env.VITE_API_URL as string;
-        const headers = { Authorization: `Bearer ${kc.token}` };
-
-        // ── Step 2: GetUserDetailsByEmailExtended ─────────────────────────────
-        console.log("selldesk: calling GetUserDetailsByEmailExtended");
-        const userRes = await axios.post(
-          `${base}mdb/procedure/GetUserDetailsByEmailExtended`,
-          { p_email: userEmail },
-          { headers }
-        );
-
-        console.log("GetUserDetailsByEmailExtended →", userRes.data);
-
-        if (userRes.data?.status !== 1 || !userRes.data?.jsresult?.length) {
-          console.error("GetUserDetailsByEmailExtended: no data");
-          purgeAuth();
-          return;
-        }
-
-        user.value = userRes.data.jsresult[0] as IAppUser;
-
-        // Baseline merchantUser (mirrors merchant-app)
-        merchantUser.value.accountid    = user.value.accountid;
-        merchantUser.value.quidlyuserid = user.value.quidlyuserid;
-
-        const ids: string[] = user.value.merchantids || [];
-        console.log("selldesk: merchantids →", ids);
-
-        if (ids.length === 0) {
-          console.warn("selldesk: user has no merchants");
-          merchantUser.value.merchantid = "";
-          initialized.value = true;
-          return;
-        }
-
-        // Auto-select persisted or first merchantid
-        if (!merchantUser.value.merchantid || !ids.includes(merchantUser.value.merchantid)) {
-          merchantUser.value.merchantid = ids[0]!;
-        }
-
-        // ── Step 3: Fetch full merchant details for each id
-        const results = await Promise.all(
-          ids.map((mid) =>
-            axios
-              .post(
-                `${base}mdb/procedure/GetMerchantDetails`,
-                { p_merchantid: mid },
-                { headers }
-              )
-              .then((r) => {
-                if (r.data?.status === 1 && r.data?.jsresult?.length) {
-                  return r.data.jsresult[0] as IMerchant;
-                }
-                return null;
-              })
-              .catch((err) => {
-                console.error(`GetMerchantDetails failed for ${mid}`, err);
-                return null;
-              })
-          )
-        );
-
-        merchants.value = results.filter(Boolean) as IMerchant[];
-        console.log("selldesk: merchants →", merchants.value);
-
-        // Validate persisted merchantid is still in the list
-        const stillValid = merchants.value.some(
-          (m) => m.merchantid === merchantUser.value.merchantid
-        );
-        if (!stillValid && merchants.value.length > 0) {
-          merchantUser.value.merchantid = merchants.value[0]!.merchantid;
-        }
-      } catch (err) {
-        console.error("selldesk: verifyAuth error", err);
-        purgeAuth();
-      } finally {
-        isAuthenticating.value = false;
-        initialized.value = true;
-      }
+    if (data.status !== 1 || !data.jsresult?.length) {
+      setError({ error: "User not found" });
+      return false;
     }
 
-    /** Switch the active merchant — called by the dropdown */
-    function selectMerchant(merchantid: string) {
-      if (merchants.value.some((m) => m.merchantid === merchantid)) {
-        merchantUser.value.merchantid = merchantid;
-        console.log("selldesk: switched to merchant →", merchantid);
-      }
-    }
+    const authUser = data.jsresult[0];
 
-    function purgeAuth() {
-      user.value         = {} as IAppUser;
-      merchantUser.value = {} as IMerchantUser;
-      merchants.value    = [];
-      initialized.value  = false;
-    }
+    await setAuth(authUser);
 
-    function logout() {
-      purgeAuth();
-    }
+    return true;
+  } catch (err: any) {
+    console.error(err);
+    setError({ error: "Unable to login" });
+    return false;
+  }
+}
 
-    return {
-      // state
-      user,
-      merchantUser,
-      merchants,
-      isAuthenticating,
-      initialized,
-      // computed
-      isLoggedIn,
-      email,
-      activeMerchant,
-      merchantId,
-      merchantName,
-      accountId,
-      userId,
-      hasMultipleMerchants,
-      // actions
-      verifyAuth,
-      selectMerchant,
-      purgeAuth,
-      logout,
-    };
-  },
-  { persist: true }
-);
+  async function logout() {
+    await purgeAuth();
+  }
+
+  return {
+    errors,
+    user,
+    isAuthenticated,
+    isAuthenticating,
+    initFromStorage,
+    login,
+    logout,
+    emailLogin
+  };
+});

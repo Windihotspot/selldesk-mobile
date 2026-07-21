@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: Array<RouteRecordRaw> = [
   { path: '/', name: 'Splash', component: () => import('@/views/SplashScreen.vue')  },
-  { path: '/login', name: 'Login', component: () => import('@/views/Login.vue')  },
+  { path: '/signin', name: 'Login', component: () => import('@/views/SignIn.vue')  },
 
   
  

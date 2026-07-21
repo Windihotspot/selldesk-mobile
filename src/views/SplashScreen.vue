@@ -64,7 +64,7 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 
 // Where the splash should send the user once it's done.
-const NEXT_ROUTE = "/login";
+const NEXT_ROUTE = "/signin";
 // Total time (ms) the splash stays up before auto-navigating.
 const AUTO_ADVANCE_MS = 2400;
 
