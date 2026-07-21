@@ -2,49 +2,67 @@
   <ion-page>
     <ion-content class="ion-padding">
       <div class="signin-wrapper">
-        <div class="ion-text-center ion-margin-bottom">
-          <h1>Sign In</h1>
-          <p>
-            New here?
-            <router-link to="/sign-up">Create an account</router-link>
-          </p>
+        <div class="ion-margin-bottom">
+          <h1 class="welcome-title">Welcome Back!</h1>
+          <p class="welcome-subtitle">Log into your Selldesk account with your credentials</p>
         </div>
 
         <v-form ref="formRef" v-model="isFormValid" @submit.prevent="onSubmitLogin">
+          <label class="field-label">Email</label>
           <v-text-field
             v-model="email"
-            label="Email"
+            placeholder="Enter your email address.."
             type="email"
             variant="outlined"
+            density="comfortable"
+            rounded="lg"
             autocomplete="off"
             :rules="emailRules"
+            class="custom-field"
           />
 
+          <label class="field-label">Password</label>
           <v-text-field
             v-model="password"
-            label="Password"
-            type="password"
+            placeholder="Enter your password.."
+            :type="showPassword ? 'text' : 'password'"
             variant="outlined"
+            density="comfortable"
+            rounded="lg"
             autocomplete="off"
-            class="mt-2"
             :rules="passwordRules"
-          />
+            class="custom-field"
+          >
+            <template #append-inner>
+              <ion-icon
+                :icon="showPassword ? eyeOffOutline : eyeOutline"
+                class="toggle-icon"
+                @click="showPassword = !showPassword"
+              />
+            </template>
+          </v-text-field>
 
-          <div class="ion-text-end mb-2">
+          <div class="ion-text-end forgot-link">
             <router-link to="/password-reset">Forgot password?</router-link>
           </div>
 
           <v-btn
             block
             type="submit"
-            color="primary"
             size="large"
+            rounded="pill"
+            class="signin-btn"
             :loading="isSubmitting"
             :disabled="isSubmitting"
           >
-            Continue
+            Sign In
           </v-btn>
         </v-form>
+
+        <div class="signup-row">
+          Don't have any account?
+          <router-link to="/sign-up" class="signup-link">Sign Up</router-link>
+        </div>
       </div>
 
       <ion-toast
@@ -60,7 +78,8 @@
 
 <script lang="ts" setup>
 import { ref } from "vue";
-import { IonPage, IonContent, IonToast } from "@ionic/vue";
+import { IonPage, IonContent, IonToast, IonIcon } from "@ionic/vue";
+import { eyeOutline, eyeOffOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
@@ -72,6 +91,7 @@ const isFormValid = ref(false);
 
 const email = ref("");
 const password = ref("");
+const showPassword = ref(false);
 
 const isSubmitting = ref(false);
 const showToast = ref(false);
@@ -93,11 +113,11 @@ async function onSubmitLogin() {
   if (!valid) return;
   isSubmitting.value = true;
   const payload = {
-  email: email.value,
-  password: password.value,
-};
+    email: email.value,
+    password: password.value,
+  };
 
-  console.log("login payload:", payload)
+  console.log("login payload:", payload);
   const success = await store.emailLogin(payload);
   isSubmitting.value = false;
 
@@ -120,11 +140,75 @@ async function onSubmitLogin() {
 .signin-wrapper {
   max-width: 420px;
   margin: 0 auto;
-  padding-top: 8vh;
+  padding-top: 6vh;
 }
-.error-text {
-  color: var(--ion-color-danger);
-  font-size: 0.8rem;
-  margin: 4px 0 0 12px;
+
+.welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.welcome-subtitle {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+  margin-bottom: 20px;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  margin-top: 4px;
+}
+
+.custom-field {
+  margin-bottom: 4px;
+}
+
+.custom-field :deep(.v-field) {
+  background-color: #f6f6f8;
+}
+
+
+.toggle-icon {
+  font-size: 1.2rem;
+  color: #9a9a9a;
+  cursor: pointer;
+}
+
+.forgot-link {
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
+
+.forgot-link a {
+  color: #7c6ff0;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.signin-btn {
+  background-color: #7c6ff0 !important;
+  color: #fff !important;
+  text-transform: none;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.signup-row {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.signup-link {
+  color: #7c6ff0;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
 }
 </style>
