@@ -1,4 +1,3 @@
-import '@/scss/style.scss'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -6,11 +5,12 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { IonicVue } from '@ionic/vue'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from "@/stores/auth";
 import vuetify from './plugins/vuetify' 
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import './assets/fonts.css'
-import ApiService from "@/services/ApiService";
+
 
 import '@ionic/vue/css/core.css'
 import '@ionic/vue/css/normalize.css'
@@ -27,11 +27,16 @@ const app = createApp(App)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
+
 app.use(pinia)
 app.use(IonicVue, { mode: 'ios', animated: true, rippleEffect: false })
+
+const auth = useAuthStore(pinia);
+
+// Restore user/token BEFORE the router starts
+await auth.initFromStorage();
 app.use(router)
 app.use(vuetify)   
 app.use(ElementPlus)  
-ApiService.init(app);
 
 router.isReady().then(() => app.mount('#app'))

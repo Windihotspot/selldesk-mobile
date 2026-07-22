@@ -24,6 +24,7 @@
     "@ionic/vue-router": "^8.0.0",
     "@mdi/font": "^7.4.47",
     "@smileid/web-components": "^11.4.4",
+    "apexcharts": "^6.5.0",
     "axios": "^1.18.1",
     "capacitor-native-settings": "^6.0.6",
     "element-plus": "^2.14.1",
@@ -36,6 +37,7 @@
     "vue": "^3.4.21",
     "vue-axios": "^3.5.2",
     "vue-router": "^4.3.0",
+    "vue3-apexcharts": "^1.11.1",
     "vuetify": "^4.0.8"
   },
   "devDependencies": {

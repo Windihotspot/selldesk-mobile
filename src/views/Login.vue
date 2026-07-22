@@ -150,7 +150,6 @@ async function doLogin() {
   overflow: hidden;
   background: linear-gradient(160deg, #f7fbff 0%, #f0f2fa 55%, #eef7f0 100%);
   padding: 20px;
-  font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
 /* ── Background gradient orbs ─────────────────────────────── */

@@ -57,10 +57,10 @@
   --ion-text-color: #1a1535;
   --ion-text-color-rgb: 26, 21, 53;
 
-  --ion-color-primary: #5C2ECD;
+  --ion-color-primary: #4b9fd5;
   --ion-color-primary-rgb: 92, 46, 205;
   --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #5128b8;
+  --ion-color-primary-shade: #4b9fd5;
   --ion-color-primary-tint: #6c43d2;
 
   --ion-color-success: #00C48C;
@@ -88,8 +88,6 @@
     --ion-font-family: 'Inter', system-ui, sans-serif;
 }
 
-// ─── Google Fonts Import ────────────────────────────────────────────────────
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 // ─── Base ───────────────────────────────────────────────────────────────────
 *, *::before, *::after {
