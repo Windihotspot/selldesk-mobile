@@ -230,7 +230,7 @@ const handleSignIn = async () => {
    a plain flat fill. */
 .auth-hero,
 .btn-grad {
-  --sd-grad: linear-gradient(135deg, #5a6fff, #7d8aff);
+  --sd-grad: linear-gradient(135deg, #0a5c8f 0%, #053758 50%, #021d30 100%);
 }
 
 /* ── Carbon-style field labels & inputs ──────────────────── */
@@ -366,7 +366,7 @@ const handleSignIn = async () => {
   text-align: right; margin: 8px 0 20px;
 }
 .forgot-link {
-  font-size: 0.8rem; color: #5a6fff;
+  font-size: 0.8rem; color: #053758;
   font-weight: 600; cursor: pointer;
   text-decoration: none;
   &:hover { text-decoration: underline; }
@@ -432,7 +432,7 @@ const handleSignIn = async () => {
 /* ── Footer ───────────────────────────────────────────── */
 .auth-switch {
   text-align: center; font-size: 0.83rem; color: #5d7a90; margin-top: 18px;
-  a { color: #5a6fff; font-weight: 700; cursor: pointer; text-decoration: none;
+  a { color: #053758; font-weight: 700; cursor: pointer; text-decoration: none;
     &:hover { text-decoration: underline; }
   }
 }
